@@ -239,6 +239,12 @@ TEST(Strategies, FilteredView)
 // Don't even try compiling the rest unless earlier tests succeed!
 #ifndef TYPE_TESTS_FAILED
 
+static void test_strategy(auto const& m, auto&& range, auto&& name = "")
+{
+    SCOPED_TRACE(name);
+    m(std::forward<decltype(range)>(range));
+}
+
 // Use this one for tests where the engine should not call out to strategy.
 // I.e. when input is ordered, or there's only 1 or 2 elements.
 template<std::ranges::forward_range Container = std::vector<int>,
@@ -247,12 +253,13 @@ template<std::ranges::forward_range Container = std::vector<int>,
 static void test_values_trivial(Container&& values, Midpoint expected,
                                 Comp compare = {}, Proj projection = {})
 {
-    stats::median
+    auto const m = stats::median
         .using_compare(compare)
         .using_projection(projection)
         .using_midpoint(expected)
-        .using_strategy(test::invalid_strategy{}) // will fail if called
-        (std::forward<Container>(values));
+        .using_strategy(test::invalid_strategy{}); // will fail if called
+
+    test_strategy(m, std::forward<Container>(values), "trivial");
 }
 
 template<std::ranges::forward_range Container = std::vector<int>,
@@ -266,18 +273,9 @@ static void test_values_const_input(const Container& values, Midpoint expected,
         .using_projection(projection)
         .using_midpoint(expected);
 
-    {
-        SCOPED_TRACE("default strategy");
-        m(values);
-    }
-    {
-        SCOPED_TRACE("copy strategy");
-        m.using_copy_strategy()(values);
-    }
-    {
-        SCOPED_TRACE("external strategy");
-        m.using_external_strategy()(values);
-    }
+    test_strategy(m, values, "default strategy");
+    test_strategy(m.using_copy_strategy(), values, "copy strategy");
+    test_strategy(m.using_external_strategy(), values, "external strategy");
 }
 
 template<std::ranges::forward_range Container = std::vector<int>,
@@ -293,8 +291,7 @@ static void test_values(Container&& values, Midpoint expected,
         .using_projection(projection)
         .using_midpoint(expected);
 
-    SCOPED_TRACE("inplace strategy");
-    m.using_inplace_strategy()(std::move(values));
+    test_strategy(m.using_inplace_strategy(), values, "inplace strategy");
 }
 
 
@@ -379,6 +376,7 @@ TEST(Median, NaNsFirst)
 {
     constexpr auto nan = std::numeric_limits<double>::quiet_NaN();
     double values[] = { nan, nan, 1, 1, 100, 100, 10 };
+    test_values_trivial(values, test::dummy_midpoint{});
     EXPECT_TRUE(std::isnan(stats::median(values)));
 }
 
@@ -386,6 +384,7 @@ TEST(Median, NaNsLast)
 {
     constexpr auto nan = std::numeric_limits<double>::quiet_NaN();
     double values[] = { 1, 1, 100, 100, 10, nan, nan };
+    test_values_trivial(values, test::dummy_midpoint{});
     EXPECT_TRUE(std::isnan(stats::median(values)));
 }
 
@@ -404,18 +403,20 @@ TEST(Median, Infinities)
 
 TEST(Median, CustomOrder)
 {
-    auto const values = std::array{20, 91, 92, 54, 63};
-    // order by last digit:  0, 1, 2, 4, 3
+    auto values = std::array{3, 4, 5, 100, 101, 102};
+    // order by last digit:  100, 101, 102, 3, 4, 5
     auto const compare = [](int a, int b){ return a % 10 < b % 10; };
-    EXPECT_EQ(stats::median.using_compare(compare)(values), 92);
+    SCOPED_TRACE("from here\n");
+    test_values(values, {102, 3}, compare);
 }
 
 TEST(Median, CustomProjection)
 {
-    auto const values = std::array{20, 91, 92, 54, 63};
-    // project to last digit:  0, 1, 2, 4, 3
+    auto values = std::array{3, 4, 5, 100, 101, 102};
+    // project to last digit:  0, 1, 2, 3, 4, 5
     auto const projection = [](int a){ return a % 10; };
-    EXPECT_EQ(stats::median.using_projection(projection)(values), 2);
+    SCOPED_TRACE("from here\n");
+    test_values(values, {2, 3}, {}, projection);
 }
 
 TEST(Median, Value)
@@ -448,16 +449,6 @@ TEST(Median, NoCopy)
     EXPECT_FALSE(can_call(stats::median.using_copy_strategy(), values));
     EXPECT_EQ(stats::median.using_external_strategy()(values), 3); // 1 + 2
     EXPECT_EQ(stats::median(std::move(values)), 3);
-}
-
-TEST(Median, ProjectByValue)
-{
-    auto twice = [](auto x) { return 2 * x; };
-    constexpr auto m = stats::median.using_projection(twice);
-    int values[] = {0, 1, 3, 4, 2};
-    EXPECT_EQ(m.using_copy_strategy()(values), 4);
-    EXPECT_EQ(m.using_external_strategy()(values), 4);
-    EXPECT_EQ(m.using_inplace_strategy()(values), 4);
 }
 
 TEST(Median, FilteredRange)

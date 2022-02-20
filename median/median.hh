@@ -248,38 +248,43 @@ namespace stats
 
         // Builder interface
         template<typename P>
+        [[nodiscard]]
         constexpr auto using_projection(P projection) const {
             return median_engine<P, Comp, Midpoint, Strategy>
                 (std::move(projection), compare, midpoint, strategy);
         }
 
         template<typename C>
+        [[nodiscard]]
         constexpr auto using_compare(C compare) const {
             return median_engine<Proj, C, Midpoint, Strategy>
                 (projection, std::move(compare), midpoint, strategy);
         }
 
         template<typename M>
+        [[nodiscard]]
         constexpr auto using_midpoint(M midpoint) const {
             return median_engine<Proj, Comp, M, Strategy>
                 (projection, compare, std::move(midpoint), strategy);
         }
         template<typename T = double>
+        [[nodiscard]]
         constexpr auto using_arithmetic_midpoint() const {
             return using_midpoint(arithmetic_midpoint<T>{});
         }
 
         template<median_strategy S>
+        [[nodiscard]]
         constexpr auto using_strategy(S strategy) const
         {
             return median_engine<Proj, Comp, Midpoint, S>
                 (projection, compare, midpoint, std::move(strategy));
         }
-        constexpr auto using_external_strategy() const { return using_strategy(external_strategy{}); }
-        constexpr auto using_inplace_strategy() const { return using_strategy(inplace_strategy{}); }
-        constexpr auto using_copy_strategy() const { return using_strategy(copy_strategy{}); }
-        constexpr auto using_frugal_strategy() const { return using_strategy(frugal_strategy{}); }
-        constexpr auto using_default_strategy() const { return using_strategy(default_strategy{}); }
+        [[nodiscard]] constexpr auto using_external_strategy() const { return using_strategy(external_strategy{}); }
+        [[nodiscard]] constexpr auto using_inplace_strategy() const { return using_strategy(inplace_strategy{}); }
+        [[nodiscard]] constexpr auto using_copy_strategy() const { return using_strategy(copy_strategy{}); }
+        [[nodiscard]] constexpr auto using_frugal_strategy() const { return using_strategy(frugal_strategy{}); }
+        [[nodiscard]] constexpr auto using_default_strategy() const { return using_strategy(default_strategy{}); }
 
         // Main function interface:
         // Compute the median of a range of values
