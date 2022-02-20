@@ -150,7 +150,7 @@ namespace stats
         {
             using pointer_type = std::add_pointer_t<const std::ranges::range_value_t<Range>>;
             using pointer_traits = std::pointer_traits<pointer_type>;
-            auto indirect_project = [proj](auto *a)->decltype(auto) { return std::invoke(proj, *a); };
+            auto indirect_project = [proj](auto const* a)->decltype(auto) { return std::invoke(proj, *a); };
 
             auto pointers = values | std::views::transform(pointer_traits::pointer_to);
             auto v = std::vector(std::ranges::begin(pointers), std::ranges::end(pointers));
@@ -206,13 +206,21 @@ namespace stats
                   || std::invocable<copy_strategy, Range, Comp, Proj, Midpoint>
                   || std::invocable<external_strategy, Range, Comp, Proj, Midpoint>
         {
-            if constexpr (std::invocable<inplace_strategy_rvalues_only, Range, Comp, Proj, Midpoint>) {
+            constexpr auto can_inplace = std::invocable<inplace_strategy_rvalues_only, Range, Comp, Proj, Midpoint>;
+            constexpr auto can_external = std::invocable<external_strategy, Range, Comp, Proj, Midpoint>;
+            constexpr auto can_copy = std::invocable<copy_strategy, Range, Comp, Proj, Midpoint>;
+
+            if constexpr (can_inplace) {
                 return inplace_strategy_rvalues_only{}(std::forward<Range>(values), compare, proj, midpoint);
             }
-            if constexpr (std::invocable<external_strategy, Range, Comp, Proj, Midpoint>) {
+            if constexpr (can_copy && sizeof (projected_t<Range, Proj>*) < sizeof (projected_t<Range, Proj>)) {
+                // Copies are smaller than pointers
+                return copy_strategy{}(std::forward<Range>(values), compare, proj, midpoint);
+            }
+            if constexpr (can_external) {
                 return external_strategy{}(std::forward<Range>(values), compare, proj, midpoint);
             }
-            if constexpr (std::invocable<copy_strategy, Range, Comp, Proj, Midpoint>) {
+            if constexpr (can_copy) {
                 return copy_strategy{}(std::forward<Range>(values), compare, proj, midpoint);
             }
         }
