@@ -182,5 +182,5 @@ $(USING_GTEST): LINK.o = $(LINK.cc)
 clean::
 	$(RM) *~ *.o
 	find . -type f -executable \
-	       -exec sh -c "hexdump -n 4 -e '4/1 \"%02x\"' \$$0 | grep -qx 7f454c46" {} \; \
+	       -exec sh -c "hexdump -n 4 -e '4/1 \"%02x\"' \$$1 | grep -qx 7f454c46" sh {} \; \
 	       -delete
