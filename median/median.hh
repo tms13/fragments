@@ -87,6 +87,25 @@ namespace stats
     };
 
     // Median policies
+    struct presorted_strategy
+    {
+        // This one only works if the input is already sorted.
+        // Normally only called after an `is_sorted()` test.
+        template<std::ranges::forward_range Range,
+                 std::invocable<std::ranges::range_value_t<Range>> Proj,
+                 projected_strict_weak_order<Range, Proj> Comp,
+                 midpoint_function<Range, Proj> Midpoint>
+        auto operator()(Range&& values, Comp, Proj proj, Midpoint midpoint) const
+            -> median_result_t<Range, Proj, Midpoint>
+        {
+            // Already ordered; just access the middle elements.
+            auto const size = std::ranges::distance(values);
+            auto const lower = std::next(std::ranges::begin(values), (size - 1) / 2);
+            auto const upper = size % 2 ? lower : std::next(lower);
+            return midpoint(proj(*lower), proj(*upper));
+        }
+    };
+
     struct inplace_strategy
     {
         template<std::ranges::random_access_range Range,
@@ -158,6 +177,29 @@ namespace stats
          }
     };
 
+    // Policy adaptor
+    template<typename Policy>
+    struct shortcircuit_sorted
+    {
+        const Policy inner;
+
+        template<std::ranges::forward_range Range,
+                 typename Comp,
+                 typename Proj,
+                 typename Midpoint>
+        auto operator()(Range&& values, Comp compare, Proj proj, Midpoint midpoint) const
+            -> median_result_t<Range, Proj, Midpoint>
+            requires std::invocable<Policy, Range, Comp, Proj, Midpoint>
+        {
+            // If already ordered, just access the middle elements
+            if (std::ranges::is_sorted(values, compare, proj)) {
+                return presorted_strategy{}(std::forward<Range>(values), compare, proj, midpoint);
+            }
+            return inner(std::forward<Range>(values), compare, proj, midpoint);
+        }
+    };
+
+    // Composite policies
     struct default_strategy
     {
         template<std::ranges::forward_range Range,
@@ -172,6 +214,9 @@ namespace stats
         {
             if constexpr (std::invocable<inplace_strategy_rvalues_only, Range, Comp, Proj, Midpoint>) {
                 return inplace_strategy_rvalues_only{}(std::forward<Range>(values), compare, proj, midpoint);
+            }
+            if (std::ranges::is_sorted(values, compare, proj)) {
+                return presorted_strategy{}(std::forward<Range>(values), compare, proj, midpoint);
             }
             if constexpr (std::invocable<copy_strategy, Range, Comp, Proj, Midpoint>) {
                 try {
@@ -213,6 +258,9 @@ namespace stats
             if constexpr (can_inplace) {
                 return inplace_strategy_rvalues_only{}(std::forward<Range>(values), compare, proj, midpoint);
             }
+            if (std::ranges::is_sorted(values, compare, proj)) {
+                return presorted_strategy{}(std::forward<Range>(values), compare, proj, midpoint);
+            }
             if constexpr (can_copy && sizeof (projected_t<Range, Proj>*) < sizeof (projected_t<Range, Proj>)) {
                 // Copies are smaller than pointers
                 return copy_strategy{}(std::forward<Range>(values), compare, proj, midpoint);
@@ -246,7 +294,7 @@ namespace stats
               midpoint{std::move(midpoint)}
         {}
 
-        // Builder interface
+        // Builder interface - projection, comparator and midpoint functions
         template<typename P>
         [[nodiscard]]
         constexpr auto using_projection(P projection) const {
@@ -273,6 +321,7 @@ namespace stats
             return using_midpoint(arithmetic_midpoint<T>{});
         }
 
+        // Builder interface - median strategy
         template<median_strategy S>
         [[nodiscard]]
         constexpr auto using_strategy(S strategy) const
@@ -280,11 +329,21 @@ namespace stats
             return median_engine<Proj, Comp, Midpoint, S>
                 (projection, compare, midpoint, std::move(strategy));
         }
-        [[nodiscard]] constexpr auto using_external_strategy() const { return using_strategy(external_strategy{}); }
-        [[nodiscard]] constexpr auto using_inplace_strategy() const { return using_strategy(inplace_strategy{}); }
-        [[nodiscard]] constexpr auto using_copy_strategy() const { return using_strategy(copy_strategy{}); }
-        [[nodiscard]] constexpr auto using_frugal_strategy() const { return using_strategy(frugal_strategy{}); }
-        [[nodiscard]] constexpr auto using_default_strategy() const { return using_strategy(default_strategy{}); }
+
+        [[nodiscard]] constexpr auto using_inplace_strategy() const
+        { return using_strategy(inplace_strategy{}); }
+
+        [[nodiscard]] constexpr auto using_external_strategy() const
+        { return using_strategy(shortcircuit_sorted{external_strategy{}}); }
+
+        [[nodiscard]] constexpr auto using_copy_strategy() const
+        { return using_strategy(shortcircuit_sorted{copy_strategy{}}); }
+
+        [[nodiscard]] constexpr auto using_default_strategy() const
+        { return using_strategy(default_strategy{}); }
+
+        [[nodiscard]] constexpr auto using_frugal_strategy() const
+        { return using_strategy(frugal_strategy{}); }
 
         // Main function interface:
         // Compute the median of a range of values
@@ -348,13 +407,6 @@ namespace stats
                 if (auto it = std::ranges::find_if(values, isnan, projection); it != std::ranges::end(values)) {
                     return midpoint(project(it), project(it));
                 }
-            }
-
-            // If already ordered, just access the middle elements
-            if (std::ranges::is_sorted(values, compare, projection)) {
-                auto const lower = std::next(std::ranges::begin(values), (size - 1) / 2);
-                auto const upper = size % 2 ? lower : std::next(lower);
-                return midpoint(project(lower), project(upper));
             }
 
             // else use selected strategy

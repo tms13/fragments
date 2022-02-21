@@ -257,7 +257,7 @@ static void test_values_trivial(Container&& values, Midpoint expected,
         .using_compare(compare)
         .using_projection(projection)
         .using_midpoint(expected)
-        .using_strategy(test::invalid_strategy{}); // will fail if called
+        .using_strategy(stats::shortcircuit_sorted{test::invalid_strategy{}}); // will fail if called
 
     test_strategy(m, std::forward<Container>(values), "trivial");
 }
