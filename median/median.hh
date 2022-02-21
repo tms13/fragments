@@ -52,7 +52,8 @@ namespace stats
     // Concepts
     template<typename Range, typename Comp, typename Proj>
     concept sortable_range =
-        std::sortable<std::ranges::iterator_t<Range>, Comp, Proj>;
+        std::sortable<std::ranges::iterator_t<Range>, Comp, Proj>
+        && std::bidirectional_iterator<std::ranges::iterator_t<Range>>;
 
     template<typename C, typename Range, typename Proj>
     concept projected_strict_weak_order =
@@ -108,17 +109,15 @@ namespace stats
 
     struct inplace_strategy
     {
-        template<std::ranges::random_access_range Range,
-                 std::invocable<std::ranges::range_value_t<Range>> Proj,
-                 projected_strict_weak_order<Range, Proj> Comp,
+        template<typename Comp, typename Proj,
+                 sortable_range<Comp, Proj> Range,
                  midpoint_function<Range, Proj> Midpoint>
         auto operator()(Range&& values, Comp compare, Proj proj, Midpoint midpoint) const
             -> median_result_t<Range, Proj, Midpoint>
-            requires sortable_range<Range, Comp, Proj>
         {
             auto const size = std::ranges::distance(values);
 
-            auto upper = std::ranges::begin(values) + size / 2;
+            auto upper = std::next(std::ranges::begin(values), size / 2);
             std::ranges::nth_element(values, upper, compare, proj);
             auto lower = size % 2 ? upper
                 : std::ranges::max_element(std::ranges::begin(values), upper, compare, proj);
@@ -130,13 +129,12 @@ namespace stats
     {
         // Exists mainly to implement the default and frugal strategies
         // But could be useful if you need to disallow copy and external.
-        template<std::ranges::random_access_range Range,
-                 std::invocable<std::ranges::range_value_t<Range>> Proj,
-                 projected_strict_weak_order<Range, Proj> Comp,
+        template<typename Comp, typename Proj,
+                 sortable_range<Comp, Proj> Range,
                  midpoint_function<Range, Proj> Midpoint>
         auto operator()(Range&& values, Comp compare, Proj proj, Midpoint midpoint) const
             -> median_result_t<Range, Proj, Midpoint>
-            requires sortable_range<Range, Comp, Proj> && (!std::is_lvalue_reference_v<Range>)
+            requires (!std::is_lvalue_reference_v<Range>)
         {
             return inplace_strategy{}(std::forward<Range>(values), compare, proj, midpoint);
         }

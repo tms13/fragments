@@ -218,11 +218,11 @@ TEST(Strategies, FilteredView)
     using View = std::ranges::filter_view<std::ranges::ref_view<int[1]>, std::function<bool(int)>>;
     {
         SCOPED_TRACE("pass by value\n");
-        expect_usable<View>(sm_all - sm_inplace);
+        expect_usable<View>(sm_all);
     }
     {
         SCOPED_TRACE("pass by ref\n");
-        expect_usable<View&>(sm_all - sm_inplace);
+        expect_usable<View&>(sm_all - sm_inplace_rvalue);
     }
     {
         SCOPED_TRACE("pass by const ref\n");
@@ -231,7 +231,7 @@ TEST(Strategies, FilteredView)
     }
     {
         SCOPED_TRACE("pass by rvalue\n");
-        expect_usable<View&&>(sm_all - sm_inplace);
+        expect_usable<View&&>(sm_all);
     }
 }
 
@@ -361,6 +361,12 @@ TEST(Median, ConstPlainArray)
     test_values_const_input(values, {2, 2});
     // Also exercise the range-adaptor style
     EXPECT_EQ(values | stats::median, 2);
+}
+
+TEST(Median, FormwardList)
+{
+    std::forward_list values{ 2, 1, 3};
+    test_values_const_input(values, {2, 2});
 }
 
 TEST(Median, Strings)
