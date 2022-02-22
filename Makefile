@@ -178,9 +178,10 @@ $(USING_GTEST): INCLUDES += -isystem $(GTEST_DIR)/include
 $(USING_GTEST): LDLIBS += -pthread
 $(USING_GTEST): LINK.o = $(LINK.cc)
 
+ELF_SIGNATURE = 7f454c46  # ASCII: ^?, E, L, F
 
 clean::
 	$(RM) *~ *.o
 	find . -type f -executable \
-	       -exec sh -c "hexdump -n 4 -e '4/1 \"%02x\"' \$$1 | grep -qx 7f454c46" sh {} \; \
+	       -exec sh -c "hexdump -n 4 -e '4/1 \"%02x\"' \$$1 | grep -qx $(ELF_SIGNATURE)" sh {} \; \
 	       -delete
