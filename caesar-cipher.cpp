@@ -3,6 +3,7 @@
 #include <cctype>
 #include <climits>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <iterator>
 #include <numeric>
@@ -23,11 +24,19 @@ public:
     };
 
 private:
-#define LETTERS "abcdefghijklmnopqrstuvwxyz"
+    static constexpr int upper_int(char c)
+    {
+        return std::toupper(static_cast<unsigned char>(c));
+    }
+    static constexpr char upper_char(char c)
+    {
+        return static_cast<char>(upper_int(c));
+    }
+
     static char_table create_table(int rotation)
     {
-        constexpr int len = (sizeof LETTERS) - 1; // don't count the terminating null
-        static const auto* alpha2 = reinterpret_cast<const unsigned char*>(LETTERS LETTERS);
+        constexpr auto* letters = "abcdefghijklmnopqrstuvwxyz";
+        constexpr int len = std::strlen(letters);
 
         // normalise to the smallest positive equivalent
         rotation = (rotation % len + len) % len;
@@ -36,13 +45,15 @@ private:
         // begin with a identity mapping
         std::iota(table.begin(), table.end(), 0);
         // change the mapping of letters
-        for (auto i = 0;  i < len;  ++i) {
-            table[alpha2[i]] = alpha2[i+rotation];
-            table[std::toupper(alpha2[i])] = static_cast<char>(std::toupper(alpha2[i+rotation]));
+        for (auto i = 0, target = rotation;  i < len;  ++i, ++target) {
+            if (target == len) {
+                target = 0;
+            }
+            table[letters[i]] = letters[target];
+            table[upper_int(letters[i])] = upper_char(letters[target]);
         }
         return table;
     }
-#undef LETTERS
 };
 
 
