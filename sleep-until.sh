@@ -1,10 +1,8 @@
 #!/bin/sh
 
-# Sleep until the specified time
-
-# Accepts any date/time format accepted by 'date'
-
 # Assumes GNU date and GNU sleep
+
+set -eu
 
 die() {
     echo "$@" >&2
@@ -12,28 +10,57 @@ die() {
 }
 
 usage() {
-    echo "Usage: $0 TIME"
+    cat <<EOF
+Usage:  $0 [-v|--verbose] TIME
+or  $0 --version
+
+Sleep until the specified time.
+
+    TIME can be any date/time as accepted by date(1).
+
+Examples:
+    $0 3:14
+    $0 'next Tuesday'
+EOF
 }
 
+verbose=false
 
-test $# = 1 || die $(usage)
+while [ "${1+y}" ]
+do
+    case "$1" in
+        --version)
+            echo "sleep_until version 1.1"
+            exit 0
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -v|--verbose)
+            verbose=true
+            shift
+            ;;
+        -*)
+            die "Unrecognised option: $1"
+            ;;
+        *)
+            test \! "${2+y}" || die "Extra arguments after time"
+            end=$(date -d "$1" +%s.%N)
+            now=$(date +%s.%N)
+            duration=$(dc -e "$end $now -p")
+            case "$duration" in
+                -*) die "$1 is in the past!";;
+            esac
+            if $verbose
+            then
+                printf 'Sleeping for %g seconds until ' $duration
+                date -d "$1"
+            fi
+            exec sleep $duration
+            ;;
+    esac
+done
 
-case "$1" in
-    --version)
-        echo "sleep_until version 1.0"
-        exit 0
-        ;;
-    --help)
-        usage
-        exit 0
-        ;;
-    -*)
-        die "Unrecognised option: $1"
-        ;;
-    *)
-        end=$(date -d "$1" +%s.%N)
-        now=$(date +%s.%N)
-        test ${end%.*} -gt ${now%.*} || die "$1 is in the past!"
-        exec sleep $(echo $end $now - p | dc )
-        ;;
-esac
+# If we reach here, we didn't get any non-option argument
+die "No time specified"
