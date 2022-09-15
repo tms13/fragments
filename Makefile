@@ -48,13 +48,13 @@ PROGNAME = ./$(patsubst %.exe,%,$<)
 # shell-processed) and standard input in INPUT.
 export INPUT
 print_cmd = printf '%s ' $(TOOL)  $(PROGNAME); $(if $(RUNARGS),/usr/bin/printf '%q ' $(RUNARGS);)
-print_cmd += $(if $(subst environment,,$(origin INPUT)),/usr/bin/printf '<<<%q\n' "$$INPUT",echo);
-#print_cmd += echo $(origin INPUT)
 
 RUN = $(PROGNAME) $(RUNARGS)
-#RUN += $(if $(subst environment,,$(origin INPUT)),<<<"$$INPUT")
-RUN += <<<"$$INPUT"
+RUN += $(if $(INFILE),<"$(INFILE)",<<<"$$INPUT")
+print_cmd += $(if $(INFILE),/usr/bin/printf '<%q\n' "$(INFILE)",$(if $(subst environment,,$(origin INPUT)),/usr/bin/printf '<<<%q\n' "$$INPUT",echo));
 RUN += $(POSTPROC)
+
+#print_cmd += echo $(origin INFILE) $(INFILE);
 
 .PHONY: %.run %.time %.valgrind %.shellcheck
 .DELETE_ON_ERROR:
