@@ -1,7 +1,7 @@
 SHELL = bash
 
-CC := gcc-11
-CXX := g++-11
+CC := gcc-12
+CXX := g++-12
 
 COMPILE.s = $(AS) $(ASFLAGS) $(TARGET_MACH)
 AS := nasm
