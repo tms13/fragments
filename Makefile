@@ -12,14 +12,13 @@ WARNINGS = -Wall -Wextra -Wwrite-strings -Wno-parentheses
 WARNINGS += -Wpedantic -Warray-bounds
 WARNINGS += -Wconversion
 #WARNINGS += -fanalyzer
-CXX_WARNINGS += $(if $(PKGS),,-Weffc++)
+CXX_WARNINGS +=  -Wuseless-cast $(if $(PKGS),,-Weffc++)
 CC_WARNINGS += -Wstrict-prototypes -fanalyzer
 DEBUG_OPTIONS += -fPIC -gdwarf-4
+ARCH = native
 
 CXXFLAGS += -std=$(CXXVER) -fconcepts $(DEBUG_OPTIONS) $(WARNINGS) $(CXX_WARNINGS) $(INCLUDES)
-CXXFLAGS += -Wuseless-cast
 CFLAGS += -std=$(CVER) $(DEBUG_OPTIONS) $(WARNINGS) $(CC_WARNINGS) $(INCLUDES)
-CFLAGS += -Wconversion
 LDLIBS += $(LIBS)
 
 # These EXTRA_FOO varibles allow users to add to FOO (as alternative
@@ -50,8 +49,8 @@ export INPUT
 print_cmd = printf '%s ' $(TOOL)  $(PROGNAME); $(if $(RUNARGS),/usr/bin/printf '%q ' $(RUNARGS);)
 
 RUN = $(PROGNAME) $(RUNARGS)
-RUN += $(if $(INFILE),<"$(INFILE)",<<<"$$INPUT")
-print_cmd += $(if $(INFILE),/usr/bin/printf '<%q\n' "$(INFILE)",$(if $(subst environment,,$(origin INPUT)),/usr/bin/printf '<<<%q\n' "$$INPUT",echo));
+RUN += $(if $(INPROC),< <($(INPROC)),$(if $(INFILE),<"$(INFILE)",<<<"$$INPUT"))
+print_cmd += /usr/bin/printf $(if $(INPROC),'< <(%s)\n' "$(INPROC)",$(if $(INFILE),'<%q\n' "$(INFILE)",$(if $(subst environment,,$(origin INPUT)),'<<<%q\n' "$$INPUT",'')));
 RUN += $(POSTPROC)
 
 #print_cmd += echo $(origin INFILE) $(INFILE);
@@ -156,6 +155,7 @@ GTEST_SRCS_ = $(wildcard $(GTEST_DIR)/src/*.cc $(GTEST_DIR)/src/*.h) $(GTEST_HEA
 # compiles fast and for ordinary users its source rarely changes.
 VPATH += $(GTEST_DIR)/src
 VPATH += $(GMOCK_DIR)/src
+gtest%.o: WARNINGS =
 gtest%.o: CXXFLAGS += -isystem $(GTEST_DIR) -isystem $(GTEST_DIR)/include
 gtest%.o: gtest%.cc $(GTEST_SRCS_)
 	$(COMPILE.cpp) $(OUTPUT_OPTION) $<
@@ -170,10 +170,11 @@ include files.mak
 
 ### Keep these after files.mak
 
-$(OPTIMIZED) $(patsubst %,%.s,$(OPTIMIZED)): CFLAGS += -O3 -march=native
-$(OPTIMIZED) $(patsubst %,%.s,$(OPTIMIZED)): CXXFLAGS += -O3 -march=native
+$(OPTIMIZED) $(patsubst %,%.s,$(OPTIMIZED)): CFLAGS += -O3 -march=$(ARCH)
+$(OPTIMIZED) $(patsubst %,%.s,$(OPTIMIZED)): CXXFLAGS += -O3 -march=$(ARCH)
 
 $(USING_GTEST): gtest_main.o gtest-all.o
+$(USING_GTEST): CXXFLAGS += -DUSING_GTEST
 $(USING_GTEST): INCLUDES += -isystem $(GTEST_DIR)/include
 $(USING_GTEST): LDLIBS += -pthread
 $(USING_GTEST): LINK.o = $(LINK.cc)
