@@ -183,5 +183,5 @@ ELF_SIGNATURE = 7f454c46  # ASCII: ^?, E, L, F
 clean::
 	$(RM) *~ *.o *_moc.cpp *_ui.h
 	find . -type f -executable \
-	       -exec sh -c "hexdump -n 4 -e '4/1 \"%02x\"' \$$1 | grep -qx $(ELF_SIGNATURE)" sh {} \; \
+	       -exec sh -c "hexdump -n 4 -e '4/1 \"%02x\"' \$$1 | grep -qx $(ELF_SIGNATURE)" is-elf {} \; \
 	       -delete
