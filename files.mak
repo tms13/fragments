@@ -7,3 +7,4 @@ median: CXXFLAGS += -fconcepts
 median-flexible view: CXXFLAGS += -ftemplate-backtrace-limit=0 -fconcepts-diagnostics-depth=10
 
 median-flexible: median-flexible.hh
+USING_GTEST += endian
