@@ -1,20 +1,21 @@
 SHELL = bash
 
-CC := gcc-12
-CXX := g++-12
+CC := gcc-13
+CXX := g++-13
 
 COMPILE.s = $(AS) $(ASFLAGS) $(TARGET_MACH)
 AS := nasm
 
-CXXVER := c++20
+CXXVER := c++23
 CVER := c17
 WARNINGS = -Wall -Wextra -Wwrite-strings -Wno-parentheses
 WARNINGS += -Wpedantic -Warray-bounds
+WARNINGS += -Wmissing-braces
 WARNINGS += -Wconversion
 #WARNINGS += -fanalyzer
-CXX_WARNINGS +=  -Wuseless-cast $(if $(PKGS),,-Weffc++)
+CXX_WARNINGS += -Wuseless-cast $(if $(PKGS),,-Weffc++)
 CC_WARNINGS += -Wstrict-prototypes -fanalyzer
-DEBUG_OPTIONS += -fPIC -gdwarf-4
+DEBUG_OPTIONS += -fPIC -gdwarf-4 -g
 ARCH = native
 
 CXXFLAGS += -std=$(CXXVER) -fconcepts $(DEBUG_OPTIONS) $(WARNINGS) $(CXX_WARNINGS) $(INCLUDES)
