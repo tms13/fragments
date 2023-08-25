@@ -143,12 +143,12 @@ int main(int argc, char **argv)
             if (argv[1][endpos]) { throw std::invalid_argument{argv[1]}; }
             maxval = static_cast<Number>(n);
         } catch (std::exception& e) {
-            std::cerr << "Invalid argument: " << e.what();
+            std::cerr << "Invalid argument: " << e.what() << '\n';
             return EXIT_FAILURE;
         }
         break;
     default:
-        std::cerr << "Too many arguments";
+        std::cerr << "Too many arguments" << '\n';
         return EXIT_FAILURE;
     }
 
