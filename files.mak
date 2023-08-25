@@ -8,3 +8,5 @@ median-flexible view: CXXFLAGS += -ftemplate-backtrace-limit=0 -fconcepts-diagno
 
 median-flexible: median-flexible.hh
 USING_GTEST += endian
+
+OPTIMIZED += amicable-numbers
