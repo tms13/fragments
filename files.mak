@@ -10,7 +10,12 @@ median: CXXFLAGS += -fconcepts
 median-flexible view: CXXFLAGS += -ftemplate-backtrace-limit=0 -fconcepts-diagnostics-depth=10
 
 median-flexible: median-flexible.hh
+
+wchar-tr.run: RUNARGS = αβγδεζηθικλμνξοπρσςτυφχψω ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΣΤΥΦΧΨΩ
+wchar-tr.run: INPUT = Γεια σας
+
 USING_GTEST += codecvt
 USING_GTEST += endian
+USING_GTEST += wchar-tr
 
 OPTIMIZED += amicable-numbers
