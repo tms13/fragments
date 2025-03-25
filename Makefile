@@ -1,25 +1,26 @@
 SHELL = bash
 
-CC := gcc-13
-CXX := g++-13
+CC := gcc-14
+CXX := g++-14
 
 COMPILE.s = $(AS) $(ASFLAGS) $(TARGET_MACH)
 AS := nasm
 
-CXXVER := c++23
-CVER := c17
-WARNINGS = -Wall -Wextra -Wwrite-strings -Wno-parentheses
+CXXVER := c++26
+CVER := c23
+WARNINGS = -Wall -Wextra -Wwrite-strings
+WARNINGS += -Wno-parentheses -Wdangling-else
 WARNINGS += -Wpedantic -Warray-bounds
-WARNINGS += -Wmissing-braces
+#WARNINGS += -Wmissing-braces   # re-enable after https://gcc.gnu.org/bugzilla/show_bug.cgi?id=95330
 WARNINGS += -Wconversion
-#WARNINGS += -fanalyzer
+#ANALYZER = -fanalyzer
 CXX_WARNINGS += -Wuseless-cast $(if $(PKGS),,-Weffc++)
-CC_WARNINGS += -Wstrict-prototypes -fanalyzer
+CC_WARNINGS += -Wstrict-prototypes
 DEBUG_OPTIONS += -fPIC -gdwarf-4 -g
 ARCH = native
 
-CXXFLAGS += -std=$(CXXVER) -fconcepts $(DEBUG_OPTIONS) $(WARNINGS) $(CXX_WARNINGS) $(INCLUDES)
-CFLAGS += -std=$(CVER) $(DEBUG_OPTIONS) $(WARNINGS) $(CC_WARNINGS) $(INCLUDES)
+CXXFLAGS += -std=$(CXXVER) $(DEBUG_OPTIONS) $(WARNINGS) $(CXX_WARNINGS) $(ANALYZER) $(INCLUDES)
+CFLAGS += -std=$(CVER) $(DEBUG_OPTIONS) $(WARNINGS) $(CC_WARNINGS) $(ANALYZER) $(INCLUDES)
 LDLIBS += $(LIBS)
 
 # These EXTRA_FOO varibles allow users to add to FOO (as alternative
@@ -53,6 +54,7 @@ RUN = $(PROGNAME) $(RUNARGS)
 RUN += $(if $(INPROC),< <($(INPROC)),$(if $(INFILE),<"$(INFILE)",<<<"$$INPUT"))
 print_cmd += /usr/bin/printf $(if $(INPROC),'< <(%s)\n' "$(INPROC)",$(if $(INFILE),'<%q\n' "$(INFILE)",$(if $(subst environment,,$(origin INPUT)),'<<<%q\n' "$$INPUT",'')));
 RUN += $(POSTPROC)
+print_cmd += echo;
 
 #print_cmd += echo $(origin INFILE) $(INFILE);
 
