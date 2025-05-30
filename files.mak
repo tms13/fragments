@@ -11,11 +11,14 @@ median-flexible view: CXXFLAGS += -ftemplate-backtrace-limit=0 -fconcepts-diagno
 
 median-flexible: median-flexible.hh
 
+rolling-mean: WARNINGS += -Wno-conversion
+
 wchar-tr.run: RUNARGS = αβγδεζηθικλμνξοπρσςτυφχψω ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΣΤΥΦΧΨΩ
 wchar-tr.run: INPUT = Γεια σας
 
 USING_GTEST += codecvt
 USING_GTEST += endian
+USING_GTEST += rolling-mean
 USING_GTEST += wchar-tr
 
 OPTIMIZED += amicable-numbers
