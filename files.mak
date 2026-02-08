@@ -18,6 +18,7 @@ wchar-tr.run: INPUT = Γεια σας
 
 USING_GTEST += codecvt
 USING_GTEST += endian
+USING_GTEST += lru-cache
 USING_GTEST += rolling-mean
 USING_GTEST += wchar-tr
 
